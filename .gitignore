@@ -12,3 +12,5 @@
 *.out
 .DS_Store
 test.go
+server/share.service
+server/File-Sharing

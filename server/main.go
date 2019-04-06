@@ -10,13 +10,26 @@ import (
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/vault/api"
 )
 
-var Production bool
+var production bool
+
+//CSRF Variables
+var csrfKey string
+var csrfSecure bool
+
+//S3 Settings
+var s3Endpoint string
+var s3AccessKey string
+var s3SecretKey string
+var s3Bucket string
+
+var cdnDomain string
 
 func init() {
 	if os.Getenv("PROD") == "TRUE" {
-		Production = true
+		production = true
 	}
 
 	// Pre-parse all templates
@@ -31,8 +44,17 @@ func init() {
 			allFiles = append(allFiles, "./templates/"+filename)
 		}
 	}
-
 	templates, err = template.ParseFiles(allFiles...)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if production {
+		csrfSecure = true
+	} else {
+		csrfSecure = false
+	}
+	csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, err = GetConfig()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -40,27 +62,41 @@ func init() {
 }
 
 func main() {
-	var authKey string
-	var csrfSecure bool
-
-	if Production {
-		//TODO
-	} else {
-		csrfSecure = false
-		authKey = "xxksOwPHS6hL4SqYJ0oT4AbKZbAwQdLh3yfmRZHk1U8="
-	}
 
 	r := mux.NewRouter()
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("."+"/static/"))))
 	// Paths to handle registering
-	r.HandleFunc("/upload/post", handleUpload).Methods("POST")
+	r.HandleFunc("/upload/geturl", newUpload).Methods("POST")
 
 	r.HandleFunc("/", index)
+	r.HandleFunc("/download/{id}/", download)
 	// Wrap http listener with csrf middleware
 	http.ListenAndServe(":8000",
 		csrf.Protect(
-			[]byte(authKey),
+			[]byte(csrfKey),
 			csrf.Secure(csrfSecure),
 			csrf.FieldName("csrf"),
 		)(r))
 
+}
+
+func GetConfig() (string, string, string, string, string, string, error) {
+	// Connect to Vault
+	client, err := api.NewClient(&api.Config{
+		Address: os.Getenv("VAULT_ADDR"),
+	})
+	client.SetToken(os.Getenv("VAULT_TOKEN"))
+
+	// Retrieve config
+	secretValues, err := client.Logical().Read("secret/share")
+	if err != nil {
+		return "", "", "", "", "", "", err
+	}
+	csrfKey := secretValues.Data["csrf_key"].(string)
+	s3Endpoint := secretValues.Data["s3_endpoint"].(string)
+	s3AccessKey := secretValues.Data["s3_access_key"].(string)
+	s3SecretKey := secretValues.Data["s3_secret_key"].(string)
+	s3Bucket := secretValues.Data["s3_bucket"].(string)
+	cdnDomain := secretValues.Data["cdn_domain"].(string)
+	return csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, nil
 }

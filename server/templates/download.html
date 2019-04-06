@@ -55,20 +55,28 @@
   <div class="mdl-cell mdl-cell--6-col mdl-cell--3-offset-desktop mdl-cell--12-col-phone mdl-cell--8-col-tablet">
     <div class="mdl-card mdl-shadow--2dp" style="width:100%;">
         <div class="mdl-card__supporting-text">
-          <form style="padding-left:10%;padding-right:10%;" onsubmit="processEvent(event)">
+          <form style="padding-left:10%;padding-right:10%;" onsubmit="downloadFile(event)">
             <div class="mdl-textfield mdl-js-textfield" >
-              <input class="mdl-textfield__input" type="file" id="uploadfile" name="uploadfile" />
+                <div class="mdl-shadow--2dp" style="color:black;border-radius: 5px;">
+                    <div style="margin-left:5px;">
+                      <h4 id="fileName"></h4>
+                      <span id="fileSize"></span> 
+                     
+                    </div>
+                   
+                   
+                  
+                  </div>
             </div>
             <div class="mdl-textfield"style="margin-bottom:20px;" >
               <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" style="width:100%;background-color:#2196F3;">
-              Upload
+              Download
               </button>
               </div>
               <div class="mdl-textfield"style="margin-bottom:20px;" id="upload-url">
                 
                 </div>
                 <input type="hidden" name="cdn-domain" value="{{ .cdnDomain }}">
-              {{ .csrfField }}
           </form>
 
 
@@ -79,6 +87,10 @@
 
     </div>
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
-   
+    <script> 
+    window.onload = function() {
+        populateMetadata() 
+};
+    </script>
   </body>
 </html>
