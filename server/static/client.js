@@ -59,6 +59,8 @@ let started = 0
 async function downloadFile() {
  
 
+  document.getElementById("download").innerHTML = "Downloading"
+  document.getElementById("download").disabled= true
 
   let password = window.location.hash.substring(1);
     let id = window.location.pathname.split("/")[2]
@@ -139,6 +141,7 @@ async function downloadFile() {
               link.click();
               document.body.removeChild(link);
               document.getElementById('download-speed').innerHTML = 'File downloaded' ;
+              document.getElementById("download").innerHTML = "Downloaded"
         }).catch(error => console.error(error));
     }).catch(error => console.error(error));
  
