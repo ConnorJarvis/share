@@ -16,7 +16,7 @@ var templates *template.Template
 
 // index
 func index(w http.ResponseWriter, r *http.Request) {
-	templates.ExecuteTemplate(w, "index.html", map[string]interface{}{
+	templates.ExecuteTemplate(w, "upload.html", map[string]interface{}{
 		csrf.TemplateTag: csrf.TemplateField(r),
 		"cdnDomain":      cdnDomain,
 	})
@@ -31,15 +31,15 @@ func download(w http.ResponseWriter, r *http.Request) {
 }
 
 type UploadRequest struct {
-	FileSize int    `json:"fileSize"`
-	Metadata string `json:"metadata"`
-	ID       string `json:"id"`
+	ID string `json:"id"`
 }
 
 type UploadRequestResponse struct {
-	ID      string `json:"fileID"`
-	Url     string `json:"url"`
-	UrlMeta string `json:"metaUrl"`
+	ID           string            `json:"fileID"`
+	FileUrl      string            `json:"fileUrl"`
+	FileFormData map[string]string `json:"fileFormData"`
+	MetaUrl      string            `json:"metaUrl"`
+	MetaFormData map[string]string `json:"metaFormData"`
 }
 
 //Uploadrequest
@@ -57,16 +57,27 @@ func newUpload(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	url, err := s3Client.PresignedPutObject(s3Bucket, u.ID, time.Hour)
+	policy := minio.NewPostPolicy()
+	policy.SetBucket(s3Bucket)
+	policy.SetKey(u.ID)
+	policy.SetContentLengthRange(1, 1024*1024*1024)
+	policy.SetExpires(time.Now().UTC().Add(time.Hour))
+	fileUrl, fileFormData, err := s3Client.PresignedPostPolicy(policy)
 	if err != nil {
-		log.Println(err)
-	}
-	urlMeta, err := s3Client.PresignedPutObject(s3Bucket, u.ID+"_meta", time.Hour)
-	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 	}
 
-	response := UploadRequestResponse{ID: u.ID, Url: url.String(), UrlMeta: urlMeta.String()}
+	policy = minio.NewPostPolicy()
+	policy.SetBucket(s3Bucket)
+	policy.SetKey(u.ID + "_meta")
+	policy.SetContentLengthRange(1, 1000)
+	policy.SetExpires(time.Now().UTC().Add(time.Hour))
+	metaUrl, metaFormData, err := s3Client.PresignedPostPolicy(policy)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	response := UploadRequestResponse{ID: u.ID, FileUrl: fileUrl.String(), FileFormData: fileFormData, MetaUrl: metaUrl.String(), MetaFormData: metaFormData}
 
 	b, err := json.Marshal(response)
 	_, err = w.Write(b)

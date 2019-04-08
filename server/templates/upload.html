@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="home.vangel.io">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>{{.Title}}</title>
+
+
+    <link rel="shortcut icon" href="images/favicon.png">
+    <script type="text/javascript" src="/static/base64js.min.js"></script>
+    <script type="text/javascript" src="/static/client.js"></script>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <style>
+        .demo-card-wide {
+            width: 100%;
+
+        }
+
+        .mdl-card__title-text {
+            margin: auto;
+        }
+
+        .demo-card-wide>.mdl-card__menu {
+            color: #fff;
+        }
+
+        .mdl-card__supporting-text {
+            bottom: 26px;
+        }
+
+        .signin_image {
+            display: block;
+            margin: auto;
+        }
+
+        .mdl-textfield {
+            width: 100%;
+        }
+
+        .inner-div {
+            margin: auto;
+            width: 100px;
+            height: 100px;
+        }
+
+        div#mybutton {
+
+            /* IMPORTANT STUFF */
+            overflow: hidden;
+            position: relative;
+
+        }
+
+        input#myfile {
+            height: 30px;
+            cursor: pointer;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            font-size: 100px;
+            z-index: 2;
+
+            opacity: 0.0;
+            /* Standard: FF gt 1.5, Opera, Safari */
+            filter: alpha(opacity=0);
+            /* IE lt 8 */
+            -ms-filter: "alpha(opacity=0)";
+            /* IE 8 */
+            -khtml-opacity: 0.0;
+            /* Safari 1.x */
+            -moz-opacity: 0.0;
+            /* FF lt 1.5, Netscape */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mdl-grid">
+
+        <div class="mdl-cell mdl-cell--2-col mdl-cell--4-offset-desktop mdl-cell--8-col-phone mdl-cell--8-col-tablet">
+            <div style="position: absolute;margin-left:10px;">
+                <h6 style="margin-bottom:0px;margin-top:0px;" id="file-name">Filename</h6>
+                <span><span id="amount-downloaded">0 MB </span>/ <span id="file-size">0 MB</span></span>
+                <div style="margin-top:10px;">
+                    <form style="display: initial;" onsubmit="processEvent(event)">
+                        <button id="mybutton" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+                            <input class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect" type="file"
+                                id="myfile" name="uploadfile" onchange="updateUploadInfo(event)" />
+                            Select File
+                        </button>
+                        <button type="submit" id="upload"
+                            class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+                            Upload
+                        </button>
+                    </form>
+                    {{ .csrfField }}
+                </div>
+            </div>
+        </div>
+        <div class="mdl-cell mdl-cell--4-col mdl-cell--4-offset-desktop mdl-cell--12-col-phone mdl-cell--12-col-tablet">
+            <span style="margin-top:135px; position:absolute;"><span id="download-speed"></span></span>
+            <div id="download-progress" class="mdl-progress mdl-js-progress" style="margin-top:120px;"></div>
+            <div class="mdl-textfield" id="upload-url" style="margin-top: 15px;"></div>
+        </div>
+        <input type="hidden" id="cdn-domain" name="cdn-domain" value="{{ .cdnDomain }}">
+    </div>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+</body>
+
+</html>

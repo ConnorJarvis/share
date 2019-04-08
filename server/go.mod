@@ -3,6 +3,7 @@ module File-Sharing
 go 1.12
 
 require (
+	github.com/aws/aws-sdk-go v1.19.11
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-ini/ini v1.42.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
