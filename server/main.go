@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"github.com/hashicorp/vault/api"
@@ -24,6 +27,12 @@ var s3Endpoint string
 var s3AccessKey string
 var s3SecretKey string
 var s3Bucket string
+
+//Redis Settings
+var redisAddress string
+var redisPassword string
+var redisDB int
+var redisClient *redis.Client
 
 var cdnDomain string
 
@@ -54,10 +63,15 @@ func init() {
 	} else {
 		csrfSecure = false
 	}
-	csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, err = GetConfig()
+	csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, redisAddress, redisPassword, redisDB, err = GetConfig()
 	if err != nil {
 		fmt.Println(err)
 	}
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     redisAddress,
+		Password: redisPassword,
+		DB:       redisDB,
+	})
 
 }
 
@@ -80,7 +94,7 @@ func main() {
 
 }
 
-func GetConfig() (string, string, string, string, string, string, error) {
+func GetConfig() (string, string, string, string, string, string, string, string, int, error) {
 	// Connect to Vault
 	client, err := api.NewClient(&api.Config{
 		Address: os.Getenv("VAULT_ADDR"),
@@ -90,7 +104,7 @@ func GetConfig() (string, string, string, string, string, string, error) {
 	// Retrieve config
 	secretValues, err := client.Logical().Read("secret/share")
 	if err != nil {
-		return "", "", "", "", "", "", err
+		return "", "", "", "", "", "", "", "", 0, err
 	}
 	csrfKey := secretValues.Data["csrf_key"].(string)
 	s3Endpoint := secretValues.Data["s3_endpoint"].(string)
@@ -98,5 +112,13 @@ func GetConfig() (string, string, string, string, string, string, error) {
 	s3SecretKey := secretValues.Data["s3_secret_key"].(string)
 	s3Bucket := secretValues.Data["s3_bucket"].(string)
 	cdnDomain := secretValues.Data["cdn_domain"].(string)
-	return csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, nil
+	redisAddress := secretValues.Data["redis_address"].(string)
+	redisPassword := secretValues.Data["redis_password"].(string)
+	redisDB := secretValues.Data["redis_db"].(string)
+	redisDBParsed, err := strconv.Atoi(redisDB)
+	if err != nil {
+		log.Println(err)
+		return "", "", "", "", "", "", "", "", 0, err
+	}
+	return csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, redisAddress, redisPassword, redisDBParsed, nil
 }

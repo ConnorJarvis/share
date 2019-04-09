@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/go-redis/redis"
 	"github.com/gorilla/csrf"
 	"github.com/minio/minio-go"
 )
@@ -40,6 +40,7 @@ type UploadRequestResponse struct {
 	FileFormData map[string]string `json:"fileFormData"`
 	MetaUrl      string            `json:"metaUrl"`
 	MetaFormData map[string]string `json:"metaFormData"`
+	Error        int               `json:"error"`
 }
 
 //Uploadrequest
@@ -50,7 +51,22 @@ func newUpload(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	spew.Dump(u)
+	_, err = redisClient.Get(u.ID).Result()
+	log.Println(err)
+	if err != redis.Nil {
+		response := UploadRequestResponse{Error: 1}
+
+		b, err := json.Marshal(response)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	err = redisClient.Set(u.ID, "used", 0).Err()
+	if err != nil {
+		log.Println(err)
+	}
 
 	s3Client, err := minio.New(s3Endpoint, s3AccessKey, s3SecretKey, true)
 	if err != nil {
@@ -64,20 +80,20 @@ func newUpload(w http.ResponseWriter, r *http.Request) {
 	policy.SetExpires(time.Now().UTC().Add(time.Hour))
 	fileUrl, fileFormData, err := s3Client.PresignedPostPolicy(policy)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 
 	policy = minio.NewPostPolicy()
 	policy.SetBucket(s3Bucket)
 	policy.SetKey(u.ID + "_meta")
-	policy.SetContentLengthRange(1, 1000)
+	policy.SetContentLengthRange(1, 5000)
 	policy.SetExpires(time.Now().UTC().Add(time.Hour))
 	metaUrl, metaFormData, err := s3Client.PresignedPostPolicy(policy)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 
-	response := UploadRequestResponse{ID: u.ID, FileUrl: fileUrl.String(), FileFormData: fileFormData, MetaUrl: metaUrl.String(), MetaFormData: metaFormData}
+	response := UploadRequestResponse{ID: u.ID, FileUrl: fileUrl.String(), FileFormData: fileFormData, MetaUrl: metaUrl.String(), MetaFormData: metaFormData, Error: 0}
 
 	b, err := json.Marshal(response)
 	_, err = w.Write(b)

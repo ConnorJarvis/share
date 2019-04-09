@@ -14,3 +14,4 @@
 test.go
 server/share.service
 server/File-Sharing
+server/Dockerfile
