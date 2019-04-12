@@ -1,5 +1,9 @@
 # Share
 
+[![Build Status](https://travis-ci.com/ConnorJarvis/share.svg?branch=master)](https://travis-ci.com/ConnorJarvis/share)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ConnorJarvis/share)](https://goreportcard.com/report/github.com/ConnorJarvis/share)
+[![Coverage Status](https://coveralls.io/repos/github/ConnorJarvis/share/badge.svg?branch=master)](https://coveralls.io/github/ConnorJarvis/share?branch=master)
+
 Share is an encrypted file sharing service that encrypts files and the associated metadata on the client. The service itself holds no information on a file other then the ID and the size of the file.
 
 ---
@@ -15,7 +19,7 @@ Share is an encrypted file sharing service that encrypts files and the associate
 
 ## Configuration
 
-If the environment variable `prod` is set to true secure cookies are used for CSRF protection and configuration is retrieved from a Vault secret named `share`. The secrets required are:
+If the environment variable `prod` is set to true secure cookies are used for CSRF protection and the configuration is retrieved from a Vault secret named `share`. The secrets required are:
 
 - `csrf_key`
 - `s3_endpoint`

@@ -10,8 +10,4 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-.DS_Store
-test.go
 server/share.service
-server/File-Sharing
-server/Dockerfile

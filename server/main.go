@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -15,9 +16,9 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
-var config *Configuration
 var err error
 
+//Configuration defines all variables needed to operate the service
 type Configuration struct {
 	production    bool
 	csrfKey       string
@@ -33,59 +34,40 @@ type Configuration struct {
 	cdnDomain     string
 }
 
-func init() {
-	config = &Configuration{}
+func main() {
+	config := &Configuration{}
+	//Check if in production
 	if os.Getenv("prod") == "TRUE" {
 		config.production = true
 		config.csrfSecure = true
 	}
-
-	// Pre-parse all templates
-	var allFiles []string
-	files, err := ioutil.ReadDir("./templates")
+	//Pre-parse all templates
+	err = parseTemplates()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal("Failed to parse templates")
 	}
-	for _, file := range files {
-		filename := file.Name()
-		if strings.HasSuffix(filename, ".html") {
-			allFiles = append(allFiles, "./templates/"+filename)
-		}
-	}
-	templates, err = template.ParseFiles(allFiles...)
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	//Retrieve configuration
 	if config.production {
-		err = GetProductionConfig()
+		err = config.getProductionConfig()
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal("Failed to retrieve production configuration")
 		}
 	} else {
-		err = GetDevelopmentConfig()
+		err = config.getDevelopmentConfig()
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal("Failed to retrieve development configuration")
 		}
 	}
 
-	config.redisClient = redis.NewClient(&redis.Options{
-		Addr:     config.redisAddress,
-		Password: config.redisPassword,
-		DB:       config.redisDB,
-	})
-
-}
-
-func main() {
-
 	r := mux.NewRouter()
+	// Serve files from the static folder
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("."+"/static/"))))
-	// Paths to handle registering
-	r.HandleFunc("/upload/geturl", uploadRequest).Methods("POST")
-
-	r.HandleFunc("/", index)
-	r.HandleFunc("/download/{id}/", download)
+	// Path to handle requesting uploadURLs
+	r.HandleFunc("/upload/geturl", config.uploadRequest).Methods("POST")
+	// Path to handle the index/upload
+	r.HandleFunc("/", config.upload)
+	//Path that serves the download page
+	r.HandleFunc("/download/{id}/", config.download)
 	// Wrap http listener with csrf middleware
 	http.ListenAndServe(":8000",
 		csrf.Protect(
@@ -96,13 +78,36 @@ func main() {
 
 }
 
-//GetProductionConfig is used to retrieve the configuration from Vault
-func GetProductionConfig() error {
+func parseTemplates() error {
+
+	var allFiles []string
+	files, err := ioutil.ReadDir("./templates")
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		filename := file.Name()
+		if strings.HasSuffix(filename, ".html") {
+			allFiles = append(allFiles, "./templates/"+filename)
+		}
+	}
+	templates, err = template.ParseFiles(allFiles...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//getProductionConfig is used to retrieve the configuration from Vault
+func (c *Configuration) getProductionConfig() error {
 
 	// Connect to Vault
 	client, err := api.NewClient(&api.Config{
 		Address: os.Getenv("vault_addr"),
 	})
+	if err != nil {
+		return err
+	}
 	client.SetToken(os.Getenv("vault_token"))
 
 	// Retrieve config
@@ -110,35 +115,82 @@ func GetProductionConfig() error {
 	if err != nil {
 		return err
 	}
-	config.csrfKey = secretValues.Data["csrf_key"].(string)
-	config.s3Endpoint = secretValues.Data["s3_endpoint"].(string)
-	config.s3AccessKey = secretValues.Data["s3_access_key"].(string)
-	config.s3SecretKey = secretValues.Data["s3_secret_key"].(string)
-	config.s3Bucket = secretValues.Data["s3_bucket"].(string)
-	config.cdnDomain = secretValues.Data["cdn_domain"].(string)
-	config.redisAddress = secretValues.Data["redis_address"].(string)
-	config.redisPassword = secretValues.Data["redis_password"].(string)
+	c.csrfKey = secretValues.Data["csrf_key"].(string)
+	c.s3Endpoint = secretValues.Data["s3_endpoint"].(string)
+	c.s3AccessKey = secretValues.Data["s3_access_key"].(string)
+	c.s3SecretKey = secretValues.Data["s3_secret_key"].(string)
+	c.s3Bucket = secretValues.Data["s3_bucket"].(string)
+	c.cdnDomain = secretValues.Data["cdn_domain"].(string)
+	c.redisAddress = secretValues.Data["redis_address"].(string)
+	c.redisPassword = secretValues.Data["redis_password"].(string)
 	redisDB := secretValues.Data["redis_db"].(string)
-	config.redisDB, err = strconv.Atoi(redisDB)
+	c.redisDB, err = strconv.Atoi(redisDB)
+	if err != nil {
+		return err
+	}
+	err = c.setupRedisClient()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetDevelopmentConfig() error {
-	config.csrfKey = os.Getenv("csrf_key")
-	config.s3Endpoint = os.Getenv("s3_endpoint")
-	config.s3AccessKey = os.Getenv("s3_access_key")
-	config.s3SecretKey = os.Getenv("s3_secret_key")
-	config.s3Bucket = os.Getenv("s3_bucket")
-	config.cdnDomain = os.Getenv("cdn_domain")
-	config.redisAddress = os.Getenv("redis_address")
-	config.redisPassword = os.Getenv("redis_password")
-	redisDB := os.Getenv("redis_db")
-	config.redisDB, err = strconv.Atoi(redisDB)
+//getDevelopmentConfig is used to retrieve the configuration from the env
+func (c *Configuration) getDevelopmentConfig() error {
+	var set bool
+	c.csrfKey, set = os.LookupEnv("csrf_key")
+	if set == false {
+		return errors.New("csrf_key not set")
+	}
+	c.s3Endpoint, set = os.LookupEnv("s3_endpoint")
+	if set == false {
+		return errors.New("s3_endpoint not set")
+	}
+	c.s3AccessKey, set = os.LookupEnv("s3_access_key")
+	if set == false {
+		return errors.New("s3_access_key not set")
+	}
+	c.s3SecretKey, set = os.LookupEnv("s3_secret_key")
+	if set == false {
+		return errors.New("s3_secret_key not set")
+	}
+	c.s3Bucket, set = os.LookupEnv("s3_bucket")
+	if set == false {
+		return errors.New("s3_bucket not set")
+	}
+	c.cdnDomain, set = os.LookupEnv("cdn_domain")
+	if set == false {
+		return errors.New("cdn_domain not set")
+	}
+	c.redisAddress, set = os.LookupEnv("redis_address")
+	if set == false {
+		return errors.New("redis_address not set")
+	}
+	c.redisPassword, set = os.LookupEnv("redis_password")
+	if set == false {
+		return errors.New("redis_password not set")
+	}
+	redisDB, set := os.LookupEnv("redis_db")
+	if set == false {
+		return errors.New("redis_db not set")
+	}
+	c.redisDB, err = strconv.Atoi(redisDB)
 	if err != nil {
 		return err
 	}
+	err = c.setupRedisClient()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Configuration) setupRedisClient() error {
+	//Create the redisClient
+	c.redisClient = redis.NewClient(&redis.Options{
+		Addr:     c.redisAddress,
+		Password: c.redisPassword,
+		DB:       c.redisDB,
+	})
 	return nil
 }

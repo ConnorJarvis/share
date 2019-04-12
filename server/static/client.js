@@ -148,7 +148,7 @@ async function downloadFile() {
     })
     .then(data => {
       //Update status to that it is being decrypted
-      document.getElementById("download-speed").innerHTML = "Decrypting file";
+      document.getElementById("network-speed").innerHTML = "Decrypting file";
       //Decrypt file
       crypto.subtle
         .decrypt({ name: "AES-GCM", iv: decodedIV }, fileKey, data)
@@ -167,7 +167,7 @@ async function downloadFile() {
           link.click();
           document.body.removeChild(link);
           //Update status that file is downloaded
-          document.getElementById("download-speed").innerHTML =
+          document.getElementById("network-speed").innerHTML =
             "File downloaded";
           document.getElementById("download").innerHTML = "Downloaded";
         })
@@ -196,18 +196,24 @@ function updateUploadInfo(evt) {
   var file = evt.target.files[0];
   document.getElementById("file-name").innerHTML = file.name;
   document.getElementById("file-size").innerHTML = formatBytes(file.size);
+  document.getElementById("upload-url").innerHTML = "";
 }
 
 //onUploadFile handles the form submit event from the file picker form
 async function onUploadFile(evt) {
   //Prevent the form from actually submitting
   evt.preventDefault();
+  if (typeof evt.target[1].files[0] === "undefined") {
+    document.getElementById("upload-url").innerHTML =
+      "Please select a file before uploading";
+    return;
+  }
   //Update the status and disable the upload button
   document.getElementById("upload").innerHTML = "Uploading";
   document.getElementById("upload").disabled = true;
   //Define the file being uploaded
   var file = evt.target[1].files[0];
-  //If the file is larger then 1GB then reject the file and ready the form for a diffrent file to be picked
+  //If the file is larger then 1GB then reject the file and ready the form for a different file to be picked
   if (file.size > 1024 * 1024 * 1024) {
     document.getElementById("upload-url").innerHTML = "File is larger then 1GB";
     document.getElementById("upload").innerHTML = "Upload";
