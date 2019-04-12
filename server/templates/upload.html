@@ -133,9 +133,9 @@
         <div class="mdl-cell mdl-cell--2-col mdl-cell--4-offset-desktop mdl-cell--8-col-phone mdl-cell--8-col-tablet">
             <div style="position: absolute;margin-left:10px;">
                 <h6 style="margin-bottom:0px;margin-top:0px;" id="file-name">Filename</h6>
-                <span><span id="amount-downloaded">0 MB </span>/ <span id="file-size">0 MB</span></span>
+                <span><span id="amount-transferred">0 MB </span>/ <span id="file-size">0 MB</span></span>
                 <div style="margin-top:10px;">
-                    <form style="display: initial;" onsubmit="processEvent(event)">
+                    <form style="display: initial;" onsubmit="onUploadFile(event)">
                         <button id="mybutton" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
                             <input class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect" type="file"
                                 id="myfile" name="uploadfile" onchange="updateUploadInfo(event)" />
@@ -151,8 +151,8 @@
             </div>
         </div>
         <div class="mdl-cell mdl-cell--4-col mdl-cell--4-offset-desktop mdl-cell--12-col-phone mdl-cell--12-col-tablet">
-            <span style="margin-top:135px; position:absolute;"><span id="download-speed"></span></span>
-            <div id="download-progress" class="mdl-progress mdl-js-progress" style="margin-top:120px;"></div>
+            <span style="margin-top:135px; position:absolute;"><span id="network-speed"></span></span>
+            <div id="network-progress" class="mdl-progress mdl-js-progress" style="margin-top:120px;"></div>
             <div class="mdl-textfield" id="upload-url" style="margin-top: 15px;"></div>
         </div>
         <input type="hidden" id="cdn-domain" name="cdn-domain" value="{{ .cdnDomain }}">

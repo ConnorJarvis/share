@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,29 +15,29 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
-var production bool
+var config *Configuration
+var err error
 
-//CSRF Variables
-var csrfKey string
-var csrfSecure bool
-
-//S3 Settings
-var s3Endpoint string
-var s3AccessKey string
-var s3SecretKey string
-var s3Bucket string
-
-//Redis Settings
-var redisAddress string
-var redisPassword string
-var redisDB int
-var redisClient *redis.Client
-
-var cdnDomain string
+type Configuration struct {
+	production    bool
+	csrfKey       string
+	csrfSecure    bool
+	s3Endpoint    string
+	s3AccessKey   string
+	s3SecretKey   string
+	s3Bucket      string
+	redisAddress  string
+	redisPassword string
+	redisDB       int
+	redisClient   *redis.Client
+	cdnDomain     string
+}
 
 func init() {
-	if os.Getenv("PROD") == "TRUE" {
-		production = true
+	config = &Configuration{}
+	if os.Getenv("prod") == "TRUE" {
+		config.production = true
+		config.csrfSecure = true
 	}
 
 	// Pre-parse all templates
@@ -58,19 +57,22 @@ func init() {
 		fmt.Println(err)
 	}
 
-	if production {
-		csrfSecure = true
+	if config.production {
+		err = GetProductionConfig()
+		if err != nil {
+			fmt.Println(err)
+		}
 	} else {
-		csrfSecure = false
+		err = GetDevelopmentConfig()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
-	csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, redisAddress, redisPassword, redisDB, err = GetConfig()
-	if err != nil {
-		fmt.Println(err)
-	}
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:     redisAddress,
-		Password: redisPassword,
-		DB:       redisDB,
+
+	config.redisClient = redis.NewClient(&redis.Options{
+		Addr:     config.redisAddress,
+		Password: config.redisPassword,
+		DB:       config.redisDB,
 	})
 
 }
@@ -80,45 +82,63 @@ func main() {
 	r := mux.NewRouter()
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("."+"/static/"))))
 	// Paths to handle registering
-	r.HandleFunc("/upload/geturl", newUpload).Methods("POST")
+	r.HandleFunc("/upload/geturl", uploadRequest).Methods("POST")
 
 	r.HandleFunc("/", index)
 	r.HandleFunc("/download/{id}/", download)
 	// Wrap http listener with csrf middleware
 	http.ListenAndServe(":8000",
 		csrf.Protect(
-			[]byte(csrfKey),
-			csrf.Secure(csrfSecure),
+			[]byte(config.csrfKey),
+			csrf.Secure(config.csrfSecure),
 			csrf.FieldName("csrf"),
 		)(r))
 
 }
 
-func GetConfig() (string, string, string, string, string, string, string, string, int, error) {
+//GetProductionConfig is used to retrieve the configuration from Vault
+func GetProductionConfig() error {
+
 	// Connect to Vault
 	client, err := api.NewClient(&api.Config{
-		Address: os.Getenv("VAULT_ADDR"),
+		Address: os.Getenv("vault_addr"),
 	})
-	client.SetToken(os.Getenv("VAULT_TOKEN"))
+	client.SetToken(os.Getenv("vault_token"))
 
 	// Retrieve config
 	secretValues, err := client.Logical().Read("secret/share")
 	if err != nil {
-		return "", "", "", "", "", "", "", "", 0, err
+		return err
 	}
-	csrfKey := secretValues.Data["csrf_key"].(string)
-	s3Endpoint := secretValues.Data["s3_endpoint"].(string)
-	s3AccessKey := secretValues.Data["s3_access_key"].(string)
-	s3SecretKey := secretValues.Data["s3_secret_key"].(string)
-	s3Bucket := secretValues.Data["s3_bucket"].(string)
-	cdnDomain := secretValues.Data["cdn_domain"].(string)
-	redisAddress := secretValues.Data["redis_address"].(string)
-	redisPassword := secretValues.Data["redis_password"].(string)
+	config.csrfKey = secretValues.Data["csrf_key"].(string)
+	config.s3Endpoint = secretValues.Data["s3_endpoint"].(string)
+	config.s3AccessKey = secretValues.Data["s3_access_key"].(string)
+	config.s3SecretKey = secretValues.Data["s3_secret_key"].(string)
+	config.s3Bucket = secretValues.Data["s3_bucket"].(string)
+	config.cdnDomain = secretValues.Data["cdn_domain"].(string)
+	config.redisAddress = secretValues.Data["redis_address"].(string)
+	config.redisPassword = secretValues.Data["redis_password"].(string)
 	redisDB := secretValues.Data["redis_db"].(string)
-	redisDBParsed, err := strconv.Atoi(redisDB)
+	config.redisDB, err = strconv.Atoi(redisDB)
 	if err != nil {
-		log.Println(err)
-		return "", "", "", "", "", "", "", "", 0, err
+		return err
 	}
-	return csrfKey, s3Endpoint, s3AccessKey, s3SecretKey, s3Bucket, cdnDomain, redisAddress, redisPassword, redisDBParsed, nil
+	return nil
+}
+
+func GetDevelopmentConfig() error {
+	config.csrfKey = os.Getenv("csrf_key")
+	config.s3Endpoint = os.Getenv("s3_endpoint")
+	config.s3AccessKey = os.Getenv("s3_access_key")
+	config.s3SecretKey = os.Getenv("s3_secret_key")
+	config.s3Bucket = os.Getenv("s3_bucket")
+	config.cdnDomain = os.Getenv("cdn_domain")
+	config.redisAddress = os.Getenv("redis_address")
+	config.redisPassword = os.Getenv("redis_password")
+	redisDB := os.Getenv("redis_db")
+	config.redisDB, err = strconv.Atoi(redisDB)
+	if err != nil {
+		return err
+	}
+	return nil
 }
