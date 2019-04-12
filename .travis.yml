@@ -14,3 +14,6 @@ script:
 - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $repo_token
 after_success:
 - bash ./docker_build.sh
+addons:
+  hosts:
+    - share-redis

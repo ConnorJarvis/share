@@ -85,10 +85,9 @@ func (c *Configuration) uploadRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	metaURL := fmt.Sprintf("https://%s/%s/", c.s3Endpoint, c.s3Bucket)
 
 	// Create a UploadRequestResponse with relevant data
-	response := UploadRequestResponse{ID: u.ID, FileURL: fileURL, FileFormData: fileFormData, MetaURL: metaURL, MetaFormData: metaFormData, Error: 0}
+	response := UploadRequestResponse{ID: u.ID, FileURL: fileURL, FileFormData: fileFormData, MetaURL: fileURL, MetaFormData: metaFormData, Error: 0}
 	b, err := json.Marshal(response)
 	//Send UploadRequestResponse marshaled to json
 	_, err = w.Write(b)
