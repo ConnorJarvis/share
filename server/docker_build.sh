@@ -1,5 +1,8 @@
 #!/bin/bash
-
+if [[ ${TRAVIS_PULL_REQUEST} != "false" ]]
+then
+exit
+fi
 if [[ ${TRAVIS_SECURE_ENV_VARS} == "true" ]]
 then
 BRANCH=dev
