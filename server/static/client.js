@@ -342,7 +342,7 @@ function uploadFile(file, url, encodedIV, encodedPassword, formData) {
   //When file is fully uploaded display download url
   xhr.addEventListener("load", function(event) {
     document.getElementById("upload-url").innerHTML =
-      '<input class="mdl-textfield__input" type="text" value="https://' +
+      '<input class="mdl-textfield__input" type="text" id="url" onfocus="copyURL()" value="https://' +
       window.location.hostname +
       "/download/" +
       encodedIV +
@@ -396,6 +396,16 @@ function arrayToB64(array) {
 function b64ToArray(str) {
   return base64js.toByteArray(str + "===".slice((str.length + 3) % 4));
 }
+
+function copyURL() {
+  var copyText = document.getElementById("url");
+  copyText.select();
+  document.execCommand("copy");
+  var snackbarContainer = document.querySelector("#toast");
+  var data = { message: "URL Copied" };
+  snackbarContainer.MaterialSnackbar.showSnackbar(data);
+}
+
 //Update progress for upload or download
 function progress(loaded, total) {
   timeElapsed = (new Date().getTime() - started) / 1000;

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestParseTemplates(t *testing.T) {
@@ -55,4 +58,16 @@ func TestGetProductionConfig(t *testing.T) {
 		t.Error(err)
 	}
 
+}
+
+func TestMain(t *testing.T) {
+	server, err := startServer()
+	if err != nil {
+		t.Error(err)
+	}
+	time.Sleep(time.Second * 5)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := server.Shutdown(ctx); err != nil {
+		log.Println(err)
+	}
 }

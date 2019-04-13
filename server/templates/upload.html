@@ -157,6 +157,11 @@
             <div class="mdl-textfield" id="upload-url" style="margin-top: 15px;"></div>
         </div>
         <input type="hidden" id="cdn-domain" name="cdn-domain" value="{{ .cdnDomain }}">
+
+        <div id="toast" class="mdl-js-snackbar mdl-snackbar">
+            <div class="mdl-snackbar__text"></div>
+            <button class="mdl-snackbar__action" type="button"></button>
+          </div>
     </div>
     <script defer src="/static/material.min.js"></script>
 </body>
