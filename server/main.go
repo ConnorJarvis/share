@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/csrf"
@@ -35,6 +38,24 @@ type Configuration struct {
 }
 
 func main() {
+
+	server, err := startServer()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	// Waiting for SIGINT (pkill -2)
+	<-stop
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := server.Shutdown(ctx); err != nil {
+		log.Println(err)
+	}
+}
+
+func startServer() (*http.Server, error) {
 	config := &Configuration{}
 	//Check if in production
 	if os.Getenv("prod") == "TRUE" {
@@ -44,18 +65,18 @@ func main() {
 	//Pre-parse all templates
 	err = parseTemplates()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	//Retrieve configuration
 	if config.production {
 		err = config.getProductionConfig()
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	} else {
 		err = config.getDevelopmentConfig()
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
@@ -68,14 +89,24 @@ func main() {
 	r.HandleFunc("/", config.upload)
 	//Path that serves the download page
 	r.HandleFunc("/download/{id}/", config.download)
-	// Wrap http listener with csrf middleware
-	http.ListenAndServe(":8000",
-		csrf.Protect(
-			[]byte(config.csrfKey),
-			csrf.Secure(config.csrfSecure),
-			csrf.FieldName("csrf"),
-		)(r))
 
+	srv := &http.Server{Addr: ":8000", Handler: csrf.Protect(
+		[]byte(config.csrfKey),
+		csrf.Secure(config.csrfSecure),
+		csrf.FieldName("csrf"),
+	)(r)}
+
+	go func() {
+		// returns ErrServerClosed on graceful close
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			// NOTE: there is a chance that next line won't have time to run,
+			// as main() doesn't wait for this goroutine to stop. don't use
+			// code with race conditions like these for production. see post
+			// comments below on more discussion on how to handle this.
+			log.Fatalf("ListenAndServe(): %s", err)
+		}
+	}()
+	return srv, nil
 }
 
 func parseTemplates() error {
