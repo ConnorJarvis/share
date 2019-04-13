@@ -44,18 +44,18 @@ func main() {
 	//Pre-parse all templates
 	err = parseTemplates()
 	if err != nil {
-		log.Fatal("Failed to parse templates")
+		log.Fatal(err)
 	}
 	//Retrieve configuration
 	if config.production {
 		err = config.getProductionConfig()
 		if err != nil {
-			log.Fatal("Failed to retrieve production configuration")
+			log.Fatal(err)
 		}
 	} else {
 		err = config.getDevelopmentConfig()
 		if err != nil {
-			log.Fatal("Failed to retrieve development configuration")
+			log.Fatal(err)
 		}
 	}
 
@@ -192,5 +192,9 @@ func (c *Configuration) setupRedisClient() error {
 		Password: c.redisPassword,
 		DB:       c.redisDB,
 	})
+	_, err := c.redisClient.Ping().Result()
+	if err != nil {
+		return err
+	}
 	return nil
 }

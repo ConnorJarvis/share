@@ -11,6 +11,9 @@ install:
 - go get github.com/mattn/goveralls 
 script:
 - go test -v -covermode=count -coverprofile=coverage.out
-- $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $repo_token
 after_success:
+- $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $repo_token
 - bash ./docker_build.sh
+addons:
+  hosts:
+    - share-redis
