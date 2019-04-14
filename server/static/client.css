@@ -130,4 +130,5 @@
     .mdl-grid {
         top: 20%;
         position: sticky;
+        z-index: 5;
     }
