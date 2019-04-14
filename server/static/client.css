@@ -1,0 +1,133 @@
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    src: url('/static/font/roboto-v19-latin-regular.eot'); /* IE9 Compat Modes */
+    src: local('Roboto'), local('Roboto-Regular'),
+         url('/static/font/roboto-v19-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('/static/font/roboto-v19-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+         url('/static/font/roboto-v19-latin-regular.woff') format('woff'), /* Modern Browsers */
+         url('/static/font/roboto-v19-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+         url('/static/font/roboto-v19-latin-regular.svg#Roboto') format('svg'); /* Legacy iOS */
+  }
+  @font-face {
+     font-family: 'Material Icons';
+     font-style: normal;
+     font-weight: 400;
+     src: url(iconfont/MaterialIcons-Regular.eot); /* For IE6-8 */
+     src: local('Material Icons'),
+          local('MaterialIcons-Regular'),
+          url(/static/iconfont/MaterialIcons-Regular.woff2) format('woff2'),
+          url(/static/iconfont/MaterialIcons-Regular.woff) format('woff'),
+          url(/static/iconfont/MaterialIcons-Regular.ttf) format('truetype');
+  }
+  
+  .material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;  /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+  
+    /* Support for all WebKit browsers. */
+    -webkit-font-smoothing: antialiased;
+    /* Support for Safari and Chrome. */
+    text-rendering: optimizeLegibility;
+  
+    /* Support for Firefox. */
+    -moz-osx-font-smoothing: grayscale;
+  
+    /* Support for IE. */
+    font-feature-settings: 'liga';
+  }
+      .demo-card-wide {
+        width: 100%;
+  
+      }
+  
+      .mdl-card__title-text {
+        margin: auto;
+      }
+  
+      .demo-card-wide>.mdl-card__menu {
+        color: #fff;
+      }
+  
+      .mdl-card__supporting-text {
+        bottom: 26px;
+      }
+  
+      .signin_image {
+        display: block;
+        margin: auto;
+      }
+  
+      .mdl-textfield {
+        width: 100%;
+      }
+  
+      .inner-div {
+        margin: auto;
+        width: 100px;
+        height: 100px;
+      }
+      div#mybutton {
+
+        /* IMPORTANT STUFF */
+        overflow: hidden;
+        position: relative;
+
+    }
+
+    input#myfile {
+        height: 100%;
+        width: 100%;
+        cursor: pointer;
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        font-size: 100px;
+        z-index: 2;
+        padding: 0px;
+        opacity: 0.0;
+        /* Standard: FF gt 1.5, Opera, Safari */
+        filter: alpha(opacity=0);
+        /* IE lt 8 */
+        -ms-filter: "alpha(opacity=0)";
+        /* IE 8 */
+        -khtml-opacity: 0.0;
+        /* Safari 1.x */
+        -moz-opacity: 0.0;
+        /* FF lt 1.5, Netscape */
+    }
+    .mdl-mini-footer--social-btn {
+        background-color: transparent;
+    }
+    .social-btn__github {
+        background-image: url(/static/github_white_24.svg);
+        width: 22px;
+        height: 22px;
+    }
+    .social-btn {
+        display: block;
+        background-position: center;
+        background-size: contain;
+        background-repeat: no-repeat;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        margin: auto;
+        position: relative;
+        top: 50%;
+        transform: perspective(1px) translateY(-50%);
+    }
+    .mdl-grid {
+        top: 20%;
+        position: sticky;
+    }
