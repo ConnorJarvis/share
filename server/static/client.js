@@ -129,7 +129,10 @@ async function downloadFile() {
                   }
                   loaded += value.byteLength;
                   //Update progress on download
-                  progress(loaded, total);
+                  if (loaded > contentLength) {
+                    loaded = contentLength;
+                  }
+                  progress(loaded, contentLength);
                   controller.enqueue(value);
                   read();
                 })
@@ -288,7 +291,8 @@ async function onUploadFile(evt) {
             uploadResponse.fileUrl,
             encodedIV,
             encodedPassword,
-            uploadResponse.fileFormData
+            uploadResponse.fileFormData,
+            file.size
           );
         })
         .catch(console.error);
@@ -322,7 +326,7 @@ async function onUploadFile(evt) {
   });
 }
 
-function uploadFile(file, url, encodedIV, encodedPassword, formData) {
+function uploadFile(file, url, encodedIV, encodedPassword, formData, fileSize) {
   //Inital Variables
   var name;
   var formDatas = new FormData();
@@ -337,7 +341,11 @@ function uploadFile(file, url, encodedIV, encodedPassword, formData) {
   var xhr = new XMLHttpRequest();
   //Update progress when a "progress" event is fired
   xhr.upload.addEventListener("progress", function(event) {
-    progress(event.loaded, event.total);
+    let displayLoaded = event.loaded;
+    if (event.loaded > fileSize) {
+      displayLoaded = fileSize;
+    }
+    progress(displayLoaded, fileSize);
   });
   //When file is fully uploaded display download url
   xhr.addEventListener("load", function(event) {
