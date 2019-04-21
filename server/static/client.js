@@ -342,13 +342,13 @@ function uploadFile(file, url, encodedIV, encodedPassword, formData) {
   //When file is fully uploaded display download url
   xhr.addEventListener("load", function(event) {
     document.getElementById("upload-url").innerHTML =
-      '<input class="mdl-textfield__input" type="text" id="url" onfocus="copyURL()" value="https://' +
+      '<input class="mdl-textfield__input" type="text" id="url" onfocus="copyURL()" contenteditable="true" value="https://' +
       window.location.hostname +
       "/download/" +
       encodedIV +
       "/#" +
       encodedPassword +
-      '">';
+      '" readonly>';
     document.getElementById("upload").innerHTML = "Upload";
     document.getElementById("upload").disabled = false;
   });
@@ -399,7 +399,20 @@ function b64ToArray(str) {
 
 function copyURL() {
   var copyText = document.getElementById("url");
-  copyText.select();
+  var oldContentEditable = copyText.contentEditable,
+    oldReadOnly = copyText.readOnly,
+    range = document.createRange();
+  copyText.contentEditable = true;
+  copyText.readOnly = true;
+  range.selectNodeContents(copyText);
+  var s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(range);
+
+  copyText.setSelectionRange(0, 999999); // A big number, to cover anything that could be inside the element.
+
+  copyText.contentEditable = oldContentEditable;
+  copyText.readOnly = oldReadOnly;
   document.execCommand("copy");
   var snackbarContainer = document.querySelector("#toast");
   var data = { message: "URL Copied" };
