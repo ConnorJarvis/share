@@ -14,7 +14,7 @@
      font-family: 'Material Icons';
      font-style: normal;
      font-weight: 400;
-     src: url(iconfont/MaterialIcons-Regular.eot); /* For IE6-8 */
+     src: url(/static/iconfont/MaterialIcons-Regular.eot); /* For IE6-8 */
      src: local('Material Icons'),
           local('MaterialIcons-Regular'),
           url(/static/iconfont/MaterialIcons-Regular.woff2) format('woff2'),
@@ -110,7 +110,7 @@
         background-color: transparent;
     }
     .social-btn__github {
-        background-image: url(/static/github_white_24.svg);
+        background-image: url(/static/images/github_white_24.svg);
         width: 22px;
         height: 22px;
     }
