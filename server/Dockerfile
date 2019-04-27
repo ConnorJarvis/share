@@ -1,9 +1,7 @@
 FROM golang:1.12.2 as builder
 WORKDIR /builds/ConnorJ/share/server
 COPY go.mod .
-RUN go get
 COPY main.go  .
-COPY s3.go  .
 COPY web.go  .
 COPY ./templates/  ./templates/
 COPY ./static/  ./static/

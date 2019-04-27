@@ -19,13 +19,14 @@ Share is an encrypted file sharing service that encrypts files and the associate
 
 ## Configuration
 
-If the environment variable `prod` is set to true secure cookies are used for CSRF protection and the configuration is retrieved from a Vault secret named `share`. The secrets required are:
+If the environment variable `prod` is set to true secure cookies are used for CSRF protection and the configuration is retrieved from a Vault secret. The secrets required are:
 
 - `csrf_key`
 - `s3_endpoint`
 - `s3_access_key`
 - `s3_secret_key`
 - `s3_bucket`
+- `s3_region`
 - `cdn_domain`
 - `redis_address`
 - `redis_password`
@@ -33,7 +34,7 @@ If the environment variable `prod` is set to true secure cookies are used for CS
 
 In development these same secrets can be exposed through environment variables with the same name.
 
-Vault configuration is exposed through the environment variables `vault_addr` and `vault_token`. 
+Vault configuration is exposed through the environment variables `vault_addr`, `vault_token` and `vault_secret`. 
 
 
 
