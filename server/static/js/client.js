@@ -57,6 +57,8 @@ async function populateMetadata() {
           var uint8View = new Uint8Array(decrypted);
           //Covert decrypted bytes to object
           let metadata = JSON.parse(atob(arrayToB64(uint8View)));
+
+          storage.setItem("metadata", atob(arrayToB64(uint8View)))
           //Update metadata on the file
           document.getElementById("file-name").innerHTML = metadata.filename;
           document.getElementById("file-size").innerHTML = formatBytes(
@@ -102,96 +104,97 @@ async function downloadFile() {
   cdnDomain = storage.getItem("cdn_domain");
   //Point of reference for the download speed function
   started = new Date().getTime();
-  //Begin downloading the file
-  fetch(cdnDomain + id)
-    .then(response => {
-      //If file fails to download
-      if (!response.ok) {
-        throw Error(response.status + " " + response.statusText);
-      }
+  let metadata = JSON.parse(storage.getItem("metadata"))
 
-      if (!response.body) {
-        throw Error("ReadableStream not yet supported in this browser.");
-      }
-      //Get contentLength of file from local storage
-      const contentLength = localStorage.getItem("filesize");
-      //Parse this to an int
-      const total = parseInt(contentLength, 10);
-      //Amount of file that has been downloaded
-      let loaded = 0;
-      //Use a readable stream so we can track download progress and speed
-      return new Response(
-        new ReadableStream({
-          start(controller) {
-            const reader = response.body.getReader();
+  const fileStream = streamSaver.createWriteStream(metadata.filename, metadata.size)
+  storage.setItem("upload_amount", 0)
+  fileDownloader(cdnDomain + id, fileKey, decodedIV, fileStream)
 
-            read();
-
-            function read() {
-              reader
-                .read()
-                .then(({
-                  done,
-                  value
-                }) => {
-                  if (done) {
-                    controller.close();
-                    return;
-                  }
-                  loaded += value.byteLength;
-                  //Update progress on download
-                  if (loaded > contentLength) {
-                    loaded = contentLength;
-                  }
-                  progress(loaded, contentLength);
-                  controller.enqueue(value);
-                  read();
-                })
-                .catch(error => {
-                  console.error(error);
-                  controller.error(error);
-                });
-            }
-          }
-        })
-      );
-    })
-    .then(response => {
-      //Return the file as an arrayBuffer
-      return response.arrayBuffer();
-    })
-    .then(data => {
-      //Update status to that it is being decrypted
-      document.getElementById("network-speed").innerHTML = "Decrypting file";
-      //Decrypt file
-      crypto.subtle
-        .decrypt({
-          name: "AES-GCM",
-          iv: decodedIV
-        }, fileKey, data)
-        .then(decrypted => {
-          //Create a blob with the decrypted file
-          const blob = new Blob([decrypted]);
-          const fileName = localStorage.getItem("filename");
-          //Create a link to the inbrowser blob
-          const link = document.createElement("a");
-          const url = URL.createObjectURL(blob);
-          link.setAttribute("href", url);
-          link.setAttribute("download", fileName);
-          link.style.visibility = "hidden";
-          document.body.appendChild(link);
-          //Download the file from within the browser
-          link.click();
-          document.body.removeChild(link);
-          //Update status that file is downloaded
-          document.getElementById("network-speed").innerHTML =
-            "File downloaded";
-          document.getElementById("download").innerHTML = "Downloaded";
-        })
-        .catch(error => console.error(error));
-    })
-    .catch(error => console.error(error));
 }
+
+
+async function fileDownloader(url, fileKey, iv, fileStream) {
+  const writer = fileStream.getWriter()
+  let metadata = JSON.parse(storage.getItem("metadata"))
+  let currentIndex = 0
+  for (i = 0; i < metadata.parts.length; i++) {
+    await downloadPart(url, currentIndex, currentIndex + metadata.parts[i].partEncryptedLength - 1).then(function (encryptedPart) {
+      console.log(encryptedPart)
+      return decryptPart(encryptedPart, fileKey, iv)
+    }).then(function (decryptedData) {
+      writer.write(new Uint8Array(decryptedData))
+      currentIndex = currentIndex + metadata.parts[i].partEncryptedLength
+      if (i === metadata.parts.length - 1) {
+        writer.close();
+      }
+    })
+  }
+
+
+
+
+}
+
+async function downloadPart(url, startRange, endRange) {
+
+  return new Promise(function (resolve, reject) {
+    let metadata = JSON.parse(storage.getItem("metadata"))
+    const fileSize = parseInt(metadata.size, 10)
+    var xhr = new XMLHttpRequest();
+    xhr.addEventListener("progress", function (event) {
+      lastUploaded = parseInt(storage.getItem("last_current_upload_amount"), 10)
+      currentUploaded = event.loaded
+      totalUploaded = parseInt(storage.getItem("upload_amount"), 10)
+      totalUploaded += Math.max(currentUploaded - lastUploaded, 0)
+      storage.setItem("upload_amount", totalUploaded)
+      storage.setItem("last_current_upload_amount", currentUploaded)
+      let displayLoaded = totalUploaded;
+      if (displayLoaded > fileSize) {
+        displayLoaded = fileSize;
+      }
+      progress(displayLoaded, fileSize);
+    });
+
+
+
+
+    //If there is an error display as such
+    xhr.addEventListener("error", function (event) {
+      document.getElementById("upload-url").innerHTML = "Failed to download";
+      document.getElementById("upload").innerHTML = "Upload";
+      document.getElementById("upload").disabled = false;
+      reject({
+        status: this.status,
+        statusText: xhr.statusText
+      });
+    });
+
+    xhr.addEventListener("load", function (event) {
+      resolve(
+        xhr.response
+      )
+    })
+
+    xhr.responseType = "arraybuffer";
+    xhr.open("GET", url);
+    xhr.setRequestHeader("Range", "bytes=" + startRange + "-" + endRange)
+    //Upload file
+    xhr.send();
+
+  })
+
+
+
+}
+
+async function decryptPart(encryptedPart, fileKey, iv) {
+  return crypto.subtle
+    .decrypt({
+      name: "AES-GCM",
+      iv: iv
+    }, fileKey, encryptedPart)
+}
+
 //getUploadURL passes a requested ID to the backend server and returns the response
 function getUploadURL(id) {
   let requestBody = {
