@@ -67,7 +67,7 @@ func TestUploadRequest(t *testing.T) {
 	}
 
 	config := &Configuration{}
-	err = config.getDevelopmentConfig()
+	err = config.getProductionConfig()
 	if err != nil {
 		t.Error(err)
 	}

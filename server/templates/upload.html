@@ -1,21 +1,7 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-    <title>{{.Title}}</title>
-
-
-    <link rel="shortcut icon" href="/images/favicon.png">
-    <script type="text/javascript" src="/static/base64js.min.js"></script>
-    <script type="text/javascript" src="/static/client.js"></script>
-    <link rel="stylesheet" href="/static/material.min.css">
-    <link rel="stylesheet" href="/static/client.css">
-
-</head>
+{{ template "head" }}
 
 <body>
     <div class="mdl-grid" style="font-family: Roboto;">
@@ -52,7 +38,7 @@
             <button class="mdl-snackbar__action" type="button"></button>
           </div>
     </div>
-    <script defer src="/static/material.min.js"></script>
+    <script defer src="/static/js/material.min.js"></script>
     {{ template "footer" }}
 </body>
 

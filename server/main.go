@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ConnorJarvis/go-backblaze"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
@@ -30,11 +31,15 @@ type Configuration struct {
 	s3AccessKey   string
 	s3SecretKey   string
 	s3Bucket      string
+	s3Region      string
 	redisAddress  string
 	redisPassword string
 	redisDB       int
 	redisClient   *redis.Client
 	cdnDomain     string
+	b2AccountID   string
+	b2AccountKey  string
+	b2Client      *backblaze.B2
 }
 
 func main() {
@@ -85,6 +90,10 @@ func startServer() (*http.Server, error) {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("."+"/static/"))))
 	// Path to handle requesting uploadURLs
 	r.HandleFunc("/upload/geturl", config.uploadRequest).Methods("POST")
+
+	r.HandleFunc("/upload/getuploadparturl", config.UploadPartRequest).Methods("POST")
+
+	r.HandleFunc("/upload/completeupload", config.UploadFileComplete).Methods("POST")
 	// Path to handle the index/upload
 	r.HandleFunc("/", config.upload)
 	//Path that serves the download page
@@ -99,10 +108,6 @@ func startServer() (*http.Server, error) {
 	go func() {
 		// returns ErrServerClosed on graceful close
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			// NOTE: there is a chance that next line won't have time to run,
-			// as main() doesn't wait for this goroutine to stop. don't use
-			// code with race conditions like these for production. see post
-			// comments below on more discussion on how to handle this.
 			log.Fatalf("ListenAndServe(): %s", err)
 		}
 	}()
@@ -142,15 +147,18 @@ func (c *Configuration) getProductionConfig() error {
 	client.SetToken(os.Getenv("vault_token"))
 
 	// Retrieve config
-	secretValues, err := client.Logical().Read("secret/share")
+	secretValues, err := client.Logical().Read("secret/" + os.Getenv("vault_secret"))
 	if err != nil {
 		return err
 	}
+	c.b2AccountID = secretValues.Data["b2_account_id"].(string)
+	c.b2AccountKey = secretValues.Data["b2_account_key"].(string)
 	c.csrfKey = secretValues.Data["csrf_key"].(string)
 	c.s3Endpoint = secretValues.Data["s3_endpoint"].(string)
 	c.s3AccessKey = secretValues.Data["s3_access_key"].(string)
 	c.s3SecretKey = secretValues.Data["s3_secret_key"].(string)
 	c.s3Bucket = secretValues.Data["s3_bucket"].(string)
+	c.s3Region = secretValues.Data["s3_region"].(string)
 	c.cdnDomain = secretValues.Data["cdn_domain"].(string)
 	c.redisAddress = secretValues.Data["redis_address"].(string)
 	c.redisPassword = secretValues.Data["redis_password"].(string)
@@ -163,12 +171,25 @@ func (c *Configuration) getProductionConfig() error {
 	if err != nil {
 		return err
 	}
+	c.b2Client, err = backblaze.NewB2(backblaze.Credentials{
+		AccountID:      c.b2AccountID,
+		ApplicationKey: c.b2AccountKey,
+	})
+
 	return nil
 }
 
 //getDevelopmentConfig is used to retrieve the configuration from the env
 func (c *Configuration) getDevelopmentConfig() error {
 	var set bool
+	c.b2AccountID, set = os.LookupEnv("b2_account_id")
+	if set == false {
+		return errors.New("b2_account_id not set")
+	}
+	c.b2AccountKey, set = os.LookupEnv("b2_account_key")
+	if set == false {
+		return errors.New("b2_account_key not set")
+	}
 	c.csrfKey, set = os.LookupEnv("csrf_key")
 	if set == false {
 		return errors.New("csrf_key not set")
@@ -188,6 +209,10 @@ func (c *Configuration) getDevelopmentConfig() error {
 	c.s3Bucket, set = os.LookupEnv("s3_bucket")
 	if set == false {
 		return errors.New("s3_bucket not set")
+	}
+	c.s3Region, set = os.LookupEnv("s3_region")
+	if set == false {
+		return errors.New("s3_region not set")
 	}
 	c.cdnDomain, set = os.LookupEnv("cdn_domain")
 	if set == false {

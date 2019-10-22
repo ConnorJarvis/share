@@ -1,35 +1,14 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="description" content="">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
-  <title>{{.Title}}</title>
-
-
-  <link rel="shortcut icon" href="/static/favicon.png">
-  <script type="text/javascript" src="/static/base64js.min.js"></script>
-  <script type="text/javascript" src="/static/client.js"></script>
-  <link rel="stylesheet" href="/static/material.min.css">
-  <link rel="stylesheet" href="/static/client.css">
-</head>
+{{ template "head" }}
 
 <body>
   <div class="mdl-grid" style="font-family: Roboto;">
-
     <div class="mdl-cell mdl-cell--1-col mdl-cell--4-offset-desktop  mdl-cell--4-col-phone mdl-cell--4-col-tablet">
-
       <div style="position: absolute;">
         <i class="material-icons" style="font-size:96px;">insert_drive_file</i>
-
       </div>
-
-
-
-
-
     </div>
     <div
       class="mdl-cell mdl-cell--2-col mdl-cell--2-offset-phone mdl-cell--2-offset-tablet mdl-cell--8-col-phone mdl-cell--8-col-tablet">
@@ -37,7 +16,8 @@
         <h6 style="margin-bottom:0px;margin-top:0px;" id="file-name"></h6>
         <span><span id="amount-transferred">0 MB </span>/ <span id="file-size"></span></span>
         <div style="margin-top:10px;">
-          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect" id="download" onclick="downloadFile()">
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect" id="download"
+            onclick="downloadFile()">
             Download
           </button>
         </div>
@@ -52,7 +32,7 @@
     <input type="hidden" id="cdn-domain" name="cdn-domain" value="{{ .cdnDomain }}">
 
   </div>
-  <script defer src="/static/material.min.js"></script>
+  <script defer src="/static/js/material.min.js"></script>
   <script>
     window.onload = function () {
       populateMetadata()
