@@ -331,14 +331,14 @@ async function singleFileUploader(file, fileID, fileUploadID, fileKey, iv, metad
     partDataBuffer
   ).then(encryptedPart => {
     metadata.parts.push({
-      partNumber: i,
+      partNumber: 0,
       partEncryptedLength: encryptedPart.byteLength
     })
-    return uploadPart(encryptedPart, fileUrl, file.size, final, fileID, password)
+    return uploadPart(encryptedPart, fileUrl, file.size, true, fileID, password)
   }).then(function (result) {
     console.log(result)
     parts.push({
-      partNumber: i,
+      partNumber: 0,
       ETag: result
     })
     //Convert metadata to JSON
