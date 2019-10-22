@@ -334,10 +334,6 @@ async function singleFileUploader(file, fileID, fileUploadID, fileKey, iv, metad
       partNumber: i,
       partEncryptedLength: encryptedPart.byteLength
     })
-    var final = false
-    if (i === numberOfParts) {
-      final = true
-    }
     return uploadPart(encryptedPart, fileUrl, file.size, final, fileID, password)
   }).then(function (result) {
     console.log(result)
@@ -345,28 +341,26 @@ async function singleFileUploader(file, fileID, fileUploadID, fileKey, iv, metad
       partNumber: i,
       ETag: result
     })
-    if (i === numberOfParts) {
-      //Convert metadata to JSON
-      let metadataJSON = JSON.stringify(metadata);
-      console.log(metadata)
-      //Encrypt the metadata
-      crypto.subtle
-        .encrypt({
-            name: "AES-GCM",
-            iv
-          },
-          metadataKey,
-          b64ToArray(btoa(metadataJSON))
-        )
-        .then(encryptedMetadata => {
-          //Upload metadata
-          uploadMetadata(
-            encryptedMetadata,
-            metaUrl
-          );
-        })
-        .catch(console.error);
-    }
+    //Convert metadata to JSON
+    let metadataJSON = JSON.stringify(metadata);
+    console.log(metadata)
+    //Encrypt the metadata
+    crypto.subtle
+      .encrypt({
+          name: "AES-GCM",
+          iv
+        },
+        metadataKey,
+        b64ToArray(btoa(metadataJSON))
+      )
+      .then(encryptedMetadata => {
+        //Upload metadata
+        uploadMetadata(
+          encryptedMetadata,
+          metaUrl
+        );
+      })
+      .catch(console.error);
   })
 }
 
