@@ -236,8 +236,8 @@ async function onUploadFile(evt) {
   //Define the file being uploaded
   var file = evt.target[1].files[0];
   //If the file is larger then 1GB then reject the file and ready the form for a different file to be chosen
-  if (file.size > 1024 * 1024 * 1024) {
-    document.getElementById("upload-url").innerHTML = "File is larger then 1GB";
+  if (file.size > 1024 * 1024 * 1024 * 6) {
+    document.getElementById("upload-url").innerHTML = "File is larger then 6GB";
     document.getElementById("upload").innerHTML = "Upload";
     document.getElementById("upload").disabled = false;
     return false;
@@ -301,8 +301,73 @@ async function onUploadFile(evt) {
     //Point of reference for the upload speed function
     started = new Date().getTime();
     storage.setItem("upload_amount", 0)
-    multiPartFileUploader(file, encodedIV, uploadResponse.fileUploadID, fileKey, iv, metadataKey, uploadResponse.metaUrl, encodedPassword)
+    if (file.size > 50000000) {
+      multiPartFileUploader(file, encodedIV, uploadResponse.fileUploadID, fileKey, iv, metadataKey, uploadResponse.metaUrl, encodedPassword)
+    } else {
+      singleFileUploader(file, encodedIV, uploadResponse.fileUploadID, fileKey, iv, metadataKey, uploadResponse.metaUrl, encodedPassword, uploadResponse.secondaryFileUrl)
+    }
+
   });
+}
+
+async function singleFileUploader(file, fileID, fileUploadID, fileKey, iv, metadataKey, metaUrl, password, fileUrl) {
+  //Metadata for the encrypted file
+  let metadata = {
+    filename: file.name,
+    contenttype: file.type,
+    size: file.size,
+    parts: [],
+  };
+  let partSize = 50000000
+  let numberOfParts = Math.ceil((file.size / partSize))
+  var parts = []
+  let partData = file;
+  var partDataBuffer = await (new Response(partData)).arrayBuffer()
+  await crypto.subtle.encrypt({
+      name: "AES-GCM",
+      iv
+    },
+    fileKey,
+    partDataBuffer
+  ).then(encryptedPart => {
+    metadata.parts.push({
+      partNumber: i,
+      partEncryptedLength: encryptedPart.byteLength
+    })
+    var final = false
+    if (i === numberOfParts) {
+      final = true
+    }
+    return uploadPart(encryptedPart, fileUrl, file.size, final, fileID, password)
+  }).then(function (result) {
+    console.log(result)
+    parts.push({
+      partNumber: i,
+      ETag: result
+    })
+    if (i === numberOfParts) {
+      //Convert metadata to JSON
+      let metadataJSON = JSON.stringify(metadata);
+      console.log(metadata)
+      //Encrypt the metadata
+      crypto.subtle
+        .encrypt({
+            name: "AES-GCM",
+            iv
+          },
+          metadataKey,
+          b64ToArray(btoa(metadataJSON))
+        )
+        .then(encryptedMetadata => {
+          //Upload metadata
+          uploadMetadata(
+            encryptedMetadata,
+            metaUrl
+          );
+        })
+        .catch(console.error);
+    }
+  })
 }
 
 async function multiPartFileUploader(file, fileID, fileUploadID, fileKey, iv, metadataKey, metaUrl, password) {

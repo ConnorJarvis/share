@@ -41,10 +41,11 @@ type UploadRequest struct {
 
 //UploadRequestResponse is the json struct sent to a client in response to a UploadRequest
 type UploadRequestResponse struct {
-	ID           string `json:"fileID"`
-	FileUploadID string `json:"fileUploadID"`
-	MetaURL      string `json:"metaUrl"`
-	Error        int    `json:"error"`
+	ID               string `json:"fileID"`
+	FileUploadID     string `json:"fileUploadID"`
+	MetaURL          string `json:"metaUrl"`
+	SecondaryFileURL string `json:"secondaryFileUrl"`
+	Error            int    `json:"error"`
 }
 
 //UploadPartRequest is the json struct a client sends to the server to request a url to upload a part
@@ -255,12 +256,19 @@ func (c *Configuration) uploadRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	//Create PUT url for secondaryFile
+	//6 hours to upload
+	secondaryFileURL, err := c.CreatePutObjectURL(u.ID, 360)
+	if err != nil {
+		log.Println(err)
+	}
 	// Create a UploadRequestResponse with relevant data
 	response := UploadRequestResponse{
-		ID:           u.ID,
-		FileUploadID: multiPartID,
-		MetaURL:      metaURL,
-		Error:        0,
+		ID:               u.ID,
+		FileUploadID:     multiPartID,
+		MetaURL:          metaURL,
+		SecondaryFileURL: secondaryFileURL,
+		Error:            0,
 	}
 	b, err := json.Marshal(response)
 	//Send UploadRequestResponse marshaled to json
