@@ -1,4 +1,4 @@
-FROM golang:1.12.2 as builder
+FROM golang:1.12.13 as builder
 WORKDIR /builds/ConnorJ/share/server
 COPY go.mod .
 COPY main.go  .
