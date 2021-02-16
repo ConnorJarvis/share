@@ -18,6 +18,7 @@ addons:
   hosts:
     - share-redis
     - share-redis-dev
+    - redis
 cache:
   directories:
     - $HOME/gopath/pkg/mod
