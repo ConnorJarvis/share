@@ -136,7 +136,6 @@ func parseTemplates() error {
 
 //getProductionConfig is used to retrieve the configuration from Vault
 func (c *Configuration) getProductionConfig() error {
-
 	// Connect to Vault
 	client, err := api.NewClient(&api.Config{
 		Address: os.Getenv("vault_addr"),
@@ -147,22 +146,23 @@ func (c *Configuration) getProductionConfig() error {
 	client.SetToken(os.Getenv("vault_token"))
 
 	// Retrieve config
-	secretValues, err := client.Logical().Read("secret/" + os.Getenv("vault_secret"))
+	secretValues, err := client.Logical().Read(os.Getenv("vault_secret"))
 	if err != nil {
 		return err
 	}
-	c.b2AccountID = secretValues.Data["b2_account_id"].(string)
-	c.b2AccountKey = secretValues.Data["b2_account_key"].(string)
-	c.csrfKey = secretValues.Data["csrf_key"].(string)
-	c.s3Endpoint = secretValues.Data["s3_endpoint"].(string)
-	c.s3AccessKey = secretValues.Data["s3_access_key"].(string)
-	c.s3SecretKey = secretValues.Data["s3_secret_key"].(string)
-	c.s3Bucket = secretValues.Data["s3_bucket"].(string)
-	c.s3Region = secretValues.Data["s3_region"].(string)
-	c.cdnDomain = secretValues.Data["cdn_domain"].(string)
-	c.redisAddress = secretValues.Data["redis_address"].(string)
-	c.redisPassword = secretValues.Data["redis_password"].(string)
-	redisDB := secretValues.Data["redis_db"].(string)
+
+	c.b2AccountID = secretValues.Data["data"].(map[string]interface{})["b2_account_id"].(string)
+	c.b2AccountKey = secretValues.Data["data"].(map[string]interface{})["b2_account_key"].(string)
+	c.csrfKey = secretValues.Data["data"].(map[string]interface{})["csrf_key"].(string)
+	c.s3Endpoint = secretValues.Data["data"].(map[string]interface{})["s3_endpoint"].(string)
+	c.s3AccessKey = secretValues.Data["data"].(map[string]interface{})["s3_access_key"].(string)
+	c.s3SecretKey = secretValues.Data["data"].(map[string]interface{})["s3_secret_key"].(string)
+	c.s3Bucket = secretValues.Data["data"].(map[string]interface{})["s3_bucket"].(string)
+	c.s3Region = secretValues.Data["data"].(map[string]interface{})["s3_region"].(string)
+	c.cdnDomain = secretValues.Data["data"].(map[string]interface{})["cdn_domain"].(string)
+	c.redisAddress = secretValues.Data["data"].(map[string]interface{})["redis_address"].(string)
+	c.redisPassword = secretValues.Data["data"].(map[string]interface{})["redis_password"].(string)
+	redisDB := secretValues.Data["data"].(map[string]interface{})["redis_db"].(string)
 	c.redisDB, err = strconv.Atoi(redisDB)
 	if err != nil {
 		return err
